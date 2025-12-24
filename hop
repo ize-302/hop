@@ -249,7 +249,7 @@ main() {
 	
 	selection=$(echo "$formatted_sessions" | fzf \
 		--ansi \
-		--header "enter: switch | ctrl-n: new | ctrl-r: rename | ctrl-d: detach | ctrl-x: kill" \
+		--header "[ enter: switch, C-n: new, C-r: rename, C-d: detach, C-x: kill ]" \
 		--bind "ctrl-d:execute($SCRIPT_PATH --detach {})+reload($SCRIPT_PATH --list)" \
 		--bind "ctrl-n:execute($SCRIPT_PATH --new)+reload($SCRIPT_PATH --list)" \
 		--bind "ctrl-r:execute($SCRIPT_PATH --rename {})+reload($SCRIPT_PATH --list)" \
@@ -258,7 +258,8 @@ main() {
 		--bind "tab:down" \
 		--bind "shift-tab:up" \
 		--cycle \
-		--reverse)
+		--reverse \
+		--margin "1,0")
 	
 	if [ -n "$selection" ]; then
 		session_name=$(get_session_name "$selection")
