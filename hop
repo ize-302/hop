@@ -181,8 +181,15 @@ detach_session() {
 	fi
 }
 
+generate_random_name() {
+	local adjective=$(shuf -n1 data/adjectives.txt)
+	local noun=$(shuf -n1 data/nouns.txt)
+	echo "${adjective}-${noun}"
+}
+
 create_session() {
-	local new_name=$(gum input --placeholder "Session name")
+	local suggested_name=$(generate_random_name)
+	local new_name=$(gum input --placeholder "Session name" --value "$suggested_name")
 	if [ -n "$new_name" ]; then
 		tmux new-session -d -s "$new_name"
 	fi
