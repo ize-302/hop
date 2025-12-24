@@ -182,8 +182,8 @@ detach_session() {
 }
 
 generate_random_name() {
-	local adjective=$(shuf -n1 data/adjectives.txt)
-	local noun=$(shuf -n1 data/nouns.txt)
+	local adjective=$(shuf -n1 /usr/local/share/hop/adjectives.txt)
+	local noun=$(shuf -n1 /usr/local/share/hop/nouns.txt)
 	echo "${adjective}-${noun}"
 }
 
