@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Simple installer for hop
+
+set -e
+
+INSTALL_BIN="/usr/local/bin"
+INSTALL_SHARE="/usr/local/share/hop"
+SCRIPT_NAME="hop"
+DATA_DIR="data"
+
+if [ "$1" = "--uninstall" ]; then
+    echo "Uninstalling hop..."
+    sudo rm -f "$INSTALL_BIN/$SCRIPT_NAME"
+    sudo rm -rf "$INSTALL_SHARE"
+    echo "hop uninstalled."
+else
+    # Check dependencies
+    deps=("tmux" "fzf" "gum" "python3" "shuf")
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" >/dev/null 2>&1; then
+            echo "Error: $dep is not installed. Please install it first."
+            exit 1
+        fi
+    done
+    echo "Dependencies OK."
+
+    # Install
+    echo "Installing hop..."
+    sudo mkdir -p "$INSTALL_SHARE"
+    sudo cp "$DATA_DIR/adjectives.txt" "$INSTALL_SHARE/"
+    sudo cp "$DATA_DIR/nouns.txt" "$INSTALL_SHARE/"
+    sudo cp "$SCRIPT_NAME" "$INSTALL_BIN/"
+    sudo chmod +x "$INSTALL_BIN/$SCRIPT_NAME"
+    echo "hop installed successfully. Run 'hop' to use."
+fi
