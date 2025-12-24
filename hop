@@ -259,7 +259,7 @@ main() {
 		--bind "shift-tab:up" \
 		--cycle \
 		--reverse \
-		--margin "1,0")
+	)
 	
 	if [ -n "$selection" ]; then
 		session_name=$(get_session_name "$selection")
