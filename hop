@@ -1,0 +1,285 @@
+#!/bin/bash
+
+SCRIPT_PATH="$(realpath "$0")"
+
+# Config
+CONFIG_DIR="$HOME/.config/hop"
+BOOKMARKS_FILE="$CONFIG_DIR/sessions.toml"
+
+# Colors
+GREEN='\033[1;32m'  # Bold green for attached
+GRAY='\033[37m'     # Light gray for non-attached
+YELLOW='\033[33m'   # Yellow for bookmark star
+DIM='\033[90m'      # Dim for (new) indicator
+RESET='\033[0m'
+
+# Ensure config directory exists
+mkdir -p "$CONFIG_DIR"
+
+# Parse saved sessions from TOML file
+# Outputs: name<TAB>path<TAB>startup_command (one per line)
+parse_saved_sessions() {
+	python3 << 'EOF'
+import tomllib
+import os
+
+config_path = os.path.expanduser("~/.config/hop/sessions.toml")
+if os.path.exists(config_path):
+    with open(config_path, "rb") as f:
+        data = tomllib.load(f)
+    for session in data.get("session", []):
+        name = session.get("name", "")
+        path = session.get("path", "")
+        cmd = session.get("startup_command", "")
+        print(f"{name}\t{path}\t{cmd}")
+EOF
+}
+
+# Check if a session name is in the saved sessions
+is_saved_session() {
+	local session_name="$1"
+	parse_saved_sessions | cut -f1 | grep -qxF "$session_name"
+}
+
+# Get the config (path and startup_command) for a saved session
+# Outputs: path<TAB>startup_command
+get_saved_session_config() {
+	local session_name="$1"
+	parse_saved_sessions | while IFS=$'\t' read -r name path cmd; do
+		if [ "$name" = "$session_name" ]; then
+			echo "$path"$'\t'"$cmd"
+			break
+		fi
+	done
+}
+
+# Check if a tmux session exists
+session_exists() {
+	tmux has-session -t "$1" 2>/dev/null
+}
+
+format_time_ago() {
+	local created_ts=$1
+	local now_ts=$(date +%s)
+	local diff=$((now_ts - created_ts))
+	local day_secs=86400
+
+	if [ $diff -ge $day_secs ]; then
+		# Past 24hrs - show full date-time
+		date -d "@$created_ts" "+%Y-%m-%d %H:%M:%S"
+	else
+		# Within 24hrs - show time ago
+		if [ $diff -lt 60 ]; then
+			echo "${diff}s ago"
+		elif [ $diff -lt 3600 ]; then
+			echo "$((diff / 60))m ago"
+		else
+			echo "$((diff / 3600))h $((diff % 3600 / 60))m ago"
+		fi
+	fi
+}
+
+get_formatted_sessions() {
+	local saved_sessions=()
+	local regular_sessions=()
+	local regular_timestamps=()
+	local ri=0
+	
+	# Build associative array of existing tmux sessions
+	declare -A tmux_sessions
+	declare -A tmux_timestamps
+	declare -A tmux_attached
+	
+	while IFS= read -r line; do
+		[ -z "$line" ] && continue
+		session_name=$(echo "$line" | cut -d':' -f1)
+		date_str=$(echo "$line" | grep -oP 'created \K[^)]+')
+		created_ts=$(date -d "$date_str" +%s 2>/dev/null)
+		
+		tmux_sessions["$session_name"]=1
+		tmux_timestamps["$session_name"]=$created_ts
+		
+		if echo "$line" | grep -q "(attached)"; then
+			tmux_attached["$session_name"]=1
+		fi
+	done <<< "$(tmux ls 2>/dev/null)"
+	
+	# Process saved sessions first (in order from TOML)
+	declare -A saved_session_names
+	while IFS=$'\t' read -r name path cmd; do
+		[ -z "$name" ] && continue
+		saved_session_names["$name"]=1
+		
+		if [ -n "${tmux_sessions[$name]}" ]; then
+			# Session exists
+			local formatted_date=$(format_time_ago "${tmux_timestamps[$name]}")
+			local is_attached=""
+			if [ -n "${tmux_attached[$name]}" ]; then
+				is_attached=" *"
+			fi
+			
+			if [ -n "$is_attached" ]; then
+				saved_sessions+=("${YELLOW}★ ${RESET}${GREEN}${name} · ${formatted_date}${is_attached}${RESET}")
+			else
+				saved_sessions+=("${YELLOW}★ ${RESET}${GRAY}${name} · ${formatted_date}${RESET}")
+			fi
+		else
+			# Session doesn't exist - show as (new)
+			saved_sessions+=("${YELLOW}★ ${RESET}${GRAY}${name} ${DIM}· (new)${RESET}")
+		fi
+	done <<< "$(parse_saved_sessions)"
+	
+	# Process regular tmux sessions (not in saved list)
+	while IFS= read -r line; do
+		[ -z "$line" ] && continue
+		session_name=$(echo "$line" | cut -d':' -f1)
+		
+		# Skip if this is a saved session
+		[ -n "${saved_session_names[$session_name]}" ] && continue
+		
+		date_str=$(echo "$line" | grep -oP 'created \K[^)]+')
+		created_ts=$(date -d "$date_str" +%s 2>/dev/null)
+		
+		if [ -n "$created_ts" ]; then
+			formatted_date=$(format_time_ago "$created_ts")
+			local is_attached=""
+			
+			if echo "$line" | grep -q "(attached)"; then
+				is_attached=" *"
+			fi
+			
+			if [ -n "$is_attached" ]; then
+				regular_sessions[$ri]="${GREEN}${session_name} · ${formatted_date}${is_attached}${RESET}"
+			else
+				regular_sessions[$ri]="${GRAY}${session_name} · ${formatted_date}${RESET}"
+			fi
+			regular_timestamps[$ri]=$created_ts
+			((ri++))
+		fi
+	done <<< "$(tmux ls 2>/dev/null)"
+	
+	# Output saved sessions first (in TOML order)
+	for session in "${saved_sessions[@]}"; do
+		echo -e "$session"
+	done
+	
+	# Then output regular sessions (sorted by newest)
+	for ((j=0; j<${#regular_sessions[@]}; j++)); do
+		echo -e "${regular_timestamps[$j]} ${regular_sessions[$j]}"
+	done | sort -rn | cut -d' ' -f2-
+}
+
+get_session_name() {
+	# Remove ★ prefix if present and extract session name before the dot separator
+	echo "$1" | sed 's/^★ //' | sed 's/ ·.*//'
+}
+
+detach_session() {
+	local session_name=$(get_session_name "$1")
+	if gum confirm "Detach session '$session_name'?"; then
+		tmux detach-client -s "$session_name" 2>/dev/null
+	fi
+}
+
+create_session() {
+	local new_name=$(gum input --placeholder "Session name")
+	if [ -n "$new_name" ]; then
+		tmux new-session -d -s "$new_name"
+	fi
+}
+
+rename_session() {
+	local session_name=$(get_session_name "$1")
+	local new_name=$(gum input --placeholder "New name" --value "$session_name")
+	if [ -n "$new_name" ]; then
+		tmux rename-session -t "$session_name" "$new_name"
+	fi
+}
+
+kill_session() {
+	local session_name=$(get_session_name "$1")
+	if gum confirm "Kill session '$session_name'?"; then
+		tmux kill-session -t "$session_name" 2>/dev/null
+	fi
+}
+
+switch_to_session() {
+	local session_name="$1"
+	
+	# If session doesn't exist, check if it's a saved session and create it
+	if ! session_exists "$session_name"; then
+		if is_saved_session "$session_name"; then
+			local config=$(get_saved_session_config "$session_name")
+			local path=$(echo "$config" | cut -f1)
+			local startup_cmd=$(echo "$config" | cut -f2)
+			
+			# Expand ~ in path
+			path="${path/#\~/$HOME}"
+			
+			# Create the session with the specified path
+			tmux new-session -d -s "$session_name" -c "$path"
+			
+			# Run startup command if specified
+			if [ -n "$startup_cmd" ]; then
+				tmux send-keys -t "$session_name" "$startup_cmd" Enter
+			fi
+		else
+			# Not a saved session and doesn't exist - can't switch
+			return 1
+		fi
+	fi
+	
+	# Switch or attach to the session
+	if [ -n "$TMUX" ]; then
+		tmux switch-client -t "$session_name"
+	else
+		tmux attach -t "$session_name"
+	fi
+}
+
+main() {
+	formatted_sessions=$(get_formatted_sessions)
+	
+	selection=$(echo "$formatted_sessions" | fzf \
+		--ansi \
+		--header "enter: switch | ctrl-n: new | ctrl-r: rename | ctrl-d: detach | ctrl-x: kill" \
+		--bind "ctrl-d:execute($SCRIPT_PATH --detach {})+reload($SCRIPT_PATH --list)" \
+		--bind "ctrl-n:execute($SCRIPT_PATH --new)+reload($SCRIPT_PATH --list)" \
+		--bind "ctrl-r:execute($SCRIPT_PATH --rename {})+reload($SCRIPT_PATH --list)" \
+		--bind "ctrl-x:execute($SCRIPT_PATH --kill {})+reload($SCRIPT_PATH --list)" \
+		--bind "enter:accept" \
+		--bind "tab:down" \
+		--bind "shift-tab:up" \
+		--cycle \
+		--reverse)
+	
+	if [ -n "$selection" ]; then
+		session_name=$(get_session_name "$selection")
+		switch_to_session "$session_name"
+	fi
+}
+
+# Handle command line arguments for fzf callbacks
+case "$1" in
+	--detach)
+		shift
+		detach_session "$*"
+		;;
+	--new)
+		create_session
+		;;
+	--rename)
+		shift
+		rename_session "$*"
+		;;
+	--kill)
+		shift
+		kill_session "$*"
+		;;
+	--list)
+		get_formatted_sessions
+		;;
+	*)
+		main
+		;;
+esac
