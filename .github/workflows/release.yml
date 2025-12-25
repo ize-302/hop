@@ -1,0 +1,83 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog
+
+      - name: Get version from tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Release version: $VERSION"
+
+      - name: Update VERSION file
+        run: echo "$VERSION" > VERSION
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v3
+        id: git-cliff
+        with:
+          configuration: cliff.toml
+          args: --verbose --latest --strip header
+        env:
+          OUTPUT: CHANGES.md
+
+      - name: Read changelog
+        id: changelog
+        run: |
+          if [ -f CHANGES.md ]; then
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            cat CHANGES.md >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "changelog=No changelog available" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create release archive
+        run: |
+          mkdir hop-$VERSION
+          cp hop hop-$VERSION/
+          cp -r data hop-$VERSION/ 2>/dev/null || true
+          cp install hop-$VERSION/ 2>/dev/null || true
+          cp README.md LICENSE VERSION hop-$VERSION/ 2>/dev/null || true
+          tar -czf hop-$VERSION.tar.gz hop-$VERSION/
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ env.VERSION }}
+          body: |
+            ## Changes
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Installation
+
+            ### Option 1: Using install script
+            ```bash
+            wget https://github.com/ize-302/hop/releases/download/v${{ env.VERSION }}/hop-${{ env.VERSION }}.tar.gz
+            tar -xzf hop-${{ env.VERSION }}.tar.gz
+            cd hop-${{ env.VERSION }}
+            ./install
+            ```
+
+            ### Option 2: Manual installation
+            ```bash
+            wget https://github.com/ize-302/hop/releases/download/v${{ env.VERSION }}/hop-${{ env.VERSION }}.tar.gz
+            tar -xzf hop-${{ env.VERSION }}.tar.gz
+            cd hop-${{ env.VERSION }}
+            chmod +x hop
+            sudo cp hop /usr/local/bin/
+            sudo cp -r data /usr/local/share/hop/
+            ```
+          files: |
+            hop-${{ env.VERSION }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -175,6 +175,27 @@ work · 45m ago               # Regular session, detached (gray)
 - **Gray text** - Detached session
 - **Top priority** - Current client's session appears first
 
+## Development
+
+### Versioning
+
+hop uses [Semantic Versioning](https://semver.org/). Version information is stored in the `VERSION` file.
+
+### CI/CD
+
+This project uses GitHub Actions for:
+- **Continuous Integration**: Automated testing on every push and pull request
+- **Automated Releases**: Versioned releases with changelog generation when tags are pushed
+
+### Releasing
+
+To create a new release:
+
+1. Update the `VERSION` file with the new version number
+2. Commit and push the changes
+3. Create and push a git tag: `git tag vX.Y.Z && git push origin vX.Y.Z`
+4. GitHub Actions will automatically create a release with changelog and assets
+
 ## License
 
 MIT

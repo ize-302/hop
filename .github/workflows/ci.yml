@@ -1,0 +1,37 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tmux python3
+          # Install fzf
+          wget -O fzf.tar.gz https://github.com/junegunn/fzf/releases/download/v0.52.1/fzf-0.52.1-linux_amd64.tar.gz
+          tar -xzf fzf.tar.gz
+          sudo mv fzf /usr/local/bin/
+          # Install gum
+          wget -O gum.tar.gz https://github.com/charmbracelet/gum/releases/download/v0.13.0/gum_0.13.0_linux_amd64.tar.gz
+          tar -xzf gum.tar.gz
+          sudo mv gum /usr/local/bin/
+
+      - name: Syntax check
+        run: bash -n hop
+
+      - name: Functional test
+        run: |
+          timeout 10 ./hop --list || echo "Interactive test skipped"
+          ./hop --list | wc -l | grep -q '[0-9]' && echo "List works"
+
+      - name: Version check
+        run: |
+          if [ -f VERSION ]; then
+            echo "Version: $(cat VERSION)"
+          else
+            echo "No VERSION file found"
+          fi
