@@ -72,9 +72,14 @@ get_cached_content() {
 
 ensure_cache_dir
 
-# Parse saved sessions from TOML file (with caching)
+# Parse saved sessions from TOML file (with caching and lazy loading)
 # Outputs: name<TAB>path<TAB>startup_command (one per line)
 parse_saved_sessions() {
+	# Lazy loading: only parse if sessions.toml exists and has content
+	if [ ! -f "$BOOKMARKS_FILE" ] || [ ! -s "$BOOKMARKS_FILE" ]; then
+		return
+	fi
+
 	local cache_file="$CACHE_DIR/saved_sessions"
 
 	if is_cache_valid "$cache_file" "$CACHE_TTL"; then
@@ -214,10 +219,10 @@ get_formatted_sessions() {
 	while IFS= read -r line; do
 		[ -z "$line" ] && continue
 		session_name=$(echo "$line" | cut -d':' -f1)
-		
+
 		# Skip if this is a saved session
 		[ -n "${saved_session_names[$session_name]}" ] && continue
-		
+
 		date_str=$(echo "$line" | grep -oP 'created \K[^)]+')
 		created_ts=$(date -d "$date_str" +%s 2>/dev/null)
 		
@@ -298,8 +303,10 @@ get_formatted_sessions() {
 }
 
 get_session_name() {
-	# Remove ★ prefix if present and extract session name before the dot separator
-	echo "$1" | sed 's/^★ //' | sed 's/ ·.*//'
+	# Strip ANSI codes and extract session name (faster than sed)
+	local clean=${1//\\x1b\[[0-9;]*m/}
+	clean=${clean#★ }
+	echo "${clean%% ·*}"
 }
 
 detach_session() {
