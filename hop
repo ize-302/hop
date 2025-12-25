@@ -185,14 +185,56 @@ get_formatted_sessions() {
 		fi
 	done <<< "$(tmux ls 2>/dev/null)"
 	
-	# Output regular sessions first (sorted by newest)
+	# Find the attached session and output it first
+	local attached_session_name=""
+	local attached_display=""
+
+	# First, find which session is attached by checking the tmux_attached array
+	for session_name in "${!tmux_attached[@]}"; do
+		if [ -n "${tmux_attached[$session_name]}" ]; then
+			attached_session_name="$session_name"
+			break
+		fi
+	done
+
+	# Now find the display string for this attached session
+	if [ -n "$attached_session_name" ]; then
+		# Check regular sessions (simple string match)
+		for ((j=0; j<${#regular_sessions[@]}; j++)); do
+			if [[ "${regular_sessions[$j]}" == *"$attached_session_name"* ]]; then
+				attached_display="${regular_sessions[$j]}"
+				break
+			fi
+		done
+
+		# If not found in regular, check saved sessions (simple string match)
+		if [ -z "$attached_display" ]; then
+			for session in "${saved_sessions[@]}"; do
+				if [[ "$session" == *"$attached_session_name"* ]]; then
+					attached_display="$session"
+					break
+				fi
+			done
+		fi
+	fi
+
+	# Output attached session first (if found)
+	if [ -n "$attached_display" ]; then
+		echo -e "$attached_display"
+	fi
+
+	# Output regular sessions (sorted by newest, excluding attached)
 	for ((j=0; j<${#regular_sessions[@]}; j++)); do
-		echo -e "${regular_timestamps[$j]} ${regular_sessions[$j]}"
+		if [[ "${regular_sessions[$j]}" != *"$attached_session_name"* ]]; then
+			echo -e "${regular_timestamps[$j]} ${regular_sessions[$j]}"
+		fi
 	done | sort -rn | cut -d' ' -f2-
 
-	# Then output saved sessions (in TOML order)
+	# Output saved sessions (in TOML order, excluding attached)
 	for session in "${saved_sessions[@]}"; do
-		echo -e "$session"
+		if [[ "$session" != *"$attached_session_name"* ]]; then
+			echo -e "$session"
+		fi
 	done
 }
 
