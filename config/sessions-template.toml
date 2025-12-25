@@ -1,0 +1,14 @@
+# hop - tmux session manager
+# This file contains saved session templates
+# Edit or add sessions as needed
+
+[[session]]
+name = "🏡 home"
+path = "/home"
+startup_command = "ls -la"
+
+# Add more sessions as needed:
+# [[session]]
+# name = "project-name"
+# path = "~/path/to/project"
+# startup_command = "git status"
