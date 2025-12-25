@@ -49,6 +49,28 @@ sudo apt install tmux fzf python3
 
 ## Installation
 
+### Option 1: Using the install script (recommended)
+
+1. Clone or download this repository:
+   ```bash
+   git clone https://github.com/ize-302/hop.git
+   cd hop
+   ```
+
+2. Run the install script:
+   ```bash
+   ./install
+   ```
+
+   This will install hop to `/usr/local/bin` and data files to `/usr/local/share/hop`.
+
+3. Run it:
+   ```bash
+   hop
+   ```
+
+### Option 2: Manual installation
+
 1. Clone or download this repository:
    ```bash
    git clone https://github.com/ize-302/hop.git
@@ -63,12 +85,22 @@ sudo apt install tmux fzf python3
 3. (Optional) Add to your PATH:
    ```bash
    ln -s "$(pwd)/hop" ~/.local/bin/hop
+   # Or copy to a directory in your PATH
+   sudo cp hop /usr/local/bin/
+   sudo cp -r data /usr/local/share/hop/
    ```
 
 4. Run it:
    ```bash
    hop
    ```
+
+### Uninstalling
+
+To uninstall hop installed via the install script:
+```bash
+./install --uninstall
+```
 
 ## Configuration
 
@@ -135,7 +167,7 @@ work · 45m ago                   # Regular tmux session
 
 - `★` - Saved session (defined in sessions.toml)
 - `*` - Currently attached
-- `(new)` - Session doesn't exist yet, will be created on selection
+- `(saved)` - Session doesn't exist yet, will be created on selection
 - Green text - Attached session
 - Gray text - Detached session
 
