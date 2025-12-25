@@ -19,9 +19,6 @@ Instead of remembering session names and typing commands, just run `hop` and pre
 
 - **Fuzzy search** - Quickly find sessions by typing
 - **Saved sessions** - Define session templates in TOML with name, path, and startup command
-- **Auto-create** - Saved sessions that don't exist yet are created on-the-fly when selected
-- **Visual indicators** - Active sessions highlighted in green, saved sessions marked with `★`
-- **Time tracking** - See when each session was created ("5m ago", "2h ago")
 - **Keyboard-driven** - All actions accessible via shortcuts
 
 ## Requirements
@@ -54,7 +51,7 @@ sudo apt install tmux fzf python3
 
 1. Clone or download this repository:
    ```bash
-   git clone https://github.com/yourusername/hop.git
+   git clone https://github.com/ize-302/hop.git
    cd hop
    ```
 
@@ -81,28 +78,18 @@ hop looks for saved sessions in `~/.config/hop/sessions.toml`.
 
 ```toml
 [[session]]
-name = "📥 File manager"
+name = "File manager"
 path = "/home/user"
 startup_command = "yazi"
 
 [[session]]
-name = "📜 Dotfiles"
-path = "~/.dotfiles"
+name = "Work"
+path = "~/work/"
 startup_command = "nvim"
 
 [[session]]
-name = "💼 Work"
-path = "~/codebase/work/"
-startup_command = "nvim"
-
-[[session]]
-name = "👽 Personal"
-path = "~/codebase/personal/"
-startup_command = "nvim"
-
-[[session]]
-name = "📝 Notes"
-path = "~/Notes/"
+name = "Personal"
+path = "~/personal/"
 startup_command = "nvim"
 ```
 
@@ -139,9 +126,9 @@ hop
 ### Display
 
 ```
-★ 📥 File manager · (new)       # Saved session, not yet created
-★ 👽 Personal · 2h ago *        # Saved session, active (attached)
-★ 📝 Notes · 1h ago             # Saved session, running
+★ File manager · (new)       # Saved session, not yet created
+★ Personal · 2h ago *        # Saved session, active (attached)
+★ Notes · 1h ago             # Saved session, running
 main · 30m ago                   # Regular tmux session
 work · 45m ago                   # Regular tmux session
 ```

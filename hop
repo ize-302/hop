@@ -125,7 +125,7 @@ get_formatted_sessions() {
 			fi
 		else
 			# Session doesn't exist - show as (new)
-			saved_sessions+=("${YELLOW}★ ${RESET}${GRAY}${name} ${DIM}· (new)${RESET}")
+			saved_sessions+=("${YELLOW}★ ${RESET}${GRAY}${name} ${DIM}· (saved)${RESET}")
 		fi
 	done <<< "$(parse_saved_sessions)"
 	
@@ -249,7 +249,7 @@ main() {
 	
 	selection=$(echo "$formatted_sessions" | fzf \
 		--ansi \
-		--header "[ enter: switch, C-n: new, C-r: rename, C-d: detach, C-x: kill ]" \
+		--header "[enter: switch, C-n: new, C-r: rename, C-d: detach, C-x: kill]" \
 		--bind "ctrl-d:execute($SCRIPT_PATH --detach {})+reload($SCRIPT_PATH --list)" \
 		--bind "ctrl-n:execute($SCRIPT_PATH --new)+reload($SCRIPT_PATH --list)" \
 		--bind "ctrl-r:execute($SCRIPT_PATH --rename {})+reload($SCRIPT_PATH --list)" \
