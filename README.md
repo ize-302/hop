@@ -14,6 +14,7 @@ Managing tmux sessions can be tedious. You forget session names, lose track of w
 - Saved session templates that auto-create with the right directory and startup command
 - Quick keyboard shortcuts for common actions (create, rename, kill, detach)
 - Smart prioritization with clear visual distinction between attached and detached sessions
+- Lightning-fast performance with intelligent caching
 
 Instead of remembering session names and typing commands, just run `hop` and press Enter.
 
@@ -22,6 +23,7 @@ Instead of remembering session names and typing commands, just run `hop` and pre
 - **Fuzzy search** - Quickly find sessions by typing
 - **Saved sessions** - Define session templates in TOML with name, path, and startup command
 - **Smart prioritization** - Current client's session appears first, attached sessions highlighted
+- **Lightning fast** - Optimized startup with caching (7x performance improvement)
 - **Keyboard-driven** - All actions accessible via shortcuts
 
 ## Requirements
@@ -65,7 +67,7 @@ sudo apt install tmux fzf python3
    ./install
    ```
 
-   This will install hop to `/usr/local/bin` and data files to `/usr/local/share/hop`.
+   This will install hop to `/usr/local/bin`, data files to `/usr/local/share/hop`, and create a default `sessions.toml` configuration file in `~/.config/hop/` if it doesn't exist.
 
 3. Run it:
    ```bash

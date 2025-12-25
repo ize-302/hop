@@ -13,7 +13,7 @@ if [ "$1" = "--uninstall" ]; then
     echo "Uninstalling hop..."
     sudo rm -f "$INSTALL_BIN/$SCRIPT_NAME"
     sudo rm -rf "$INSTALL_SHARE"
-    echo "hop uninstalled."
+    echo "hop uninstalled. User configurations in ~/.config/hop/ have been preserved."
 else
     # Check dependencies
     deps=("tmux" "fzf" "gum" "python3" "shuf")
@@ -32,5 +32,23 @@ else
     sudo cp "$DATA_DIR/nouns.txt" "$INSTALL_SHARE/"
     sudo cp "$SCRIPT_NAME" "$INSTALL_BIN/"
     sudo chmod +x "$INSTALL_BIN/$SCRIPT_NAME"
+
+    # Setup user configuration
+    echo "Setting up user configuration..."
+    CONFIG_DIR="$HOME/.config/hop"
+    mkdir -p "$CONFIG_DIR"
+
+    # Copy template if sessions.toml doesn't exist
+    if [ ! -f "$CONFIG_DIR/sessions.toml" ]; then
+        if [ -f "config/sessions-template.toml" ]; then
+            cp "config/sessions-template.toml" "$CONFIG_DIR/sessions.toml"
+            echo "Created default sessions.toml from template"
+        else
+            echo "Warning: config/sessions-template.toml not found"
+        fi
+    else
+        echo "sessions.toml already exists, skipping template copy"
+    fi
+
     echo "hop installed successfully. Run 'hop' to use."
 fi
