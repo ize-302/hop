@@ -5,6 +5,9 @@ SCRIPT_PATH="$(realpath "$0")"
 # Config
 CONFIG_DIR="$HOME/.config/hop"
 BOOKMARKS_FILE="$CONFIG_DIR/sessions.toml"
+ACCESS_FILE="$CONFIG_DIR/last_accessed.toml"
+CACHE_DIR="$CONFIG_DIR/cache"
+CACHE_TTL=5  # Cache TTL in seconds
 DEBUG=0
 
 # Colors
@@ -43,10 +46,42 @@ get_data_dir() {
 	fi
 }
 
-# Parse saved sessions from TOML file
+# Cache functions for performance optimization
+ensure_cache_dir() {
+	mkdir -p "$CACHE_DIR" 2>/dev/null
+}
+
+is_cache_valid() {
+	local cache_file="$1"
+	local max_age="$2"
+	[ -f "$cache_file" ] && [ $(($(date +%s) - $(stat -c %Y "$cache_file" 2>/dev/null || date +%s))) -lt $max_age ]
+}
+
+get_cached_content() {
+	local cache_file="$1"
+	local ttl="${2:-$CACHE_TTL}"
+
+	if is_cache_valid "$cache_file" "$ttl"; then
+		cat "$cache_file" 2>/dev/null
+	else
+		# Content will be provided via stdin
+		cat > "$cache_file"
+		cat "$cache_file"
+	fi
+}
+
+ensure_cache_dir
+
+# Parse saved sessions from TOML file (with caching)
 # Outputs: name<TAB>path<TAB>startup_command (one per line)
 parse_saved_sessions() {
-	python3 << 'EOF'
+	local cache_file="$CACHE_DIR/saved_sessions"
+
+	if is_cache_valid "$cache_file" "$CACHE_TTL"; then
+		cat "$cache_file" 2>/dev/null
+	else
+		local content
+		content=$(python3 << 'EOF'
 import tomllib
 import os
 
@@ -60,6 +95,10 @@ if os.path.exists(config_path):
         cmd = session.get("startup_command", "")
         print(f"{name}\t{path}\t{cmd}")
 EOF
+)
+		echo "$content" > "$cache_file" 2>/dev/null || true
+		echo "$content"
+	fi
 }
 
 # Check if a session name is in the saved sessions
@@ -116,24 +155,34 @@ get_formatted_sessions() {
 		current_session=$(tmux display-message -p '#S' 2>/dev/null)
 	fi
 
-	# Build associative array of existing tmux sessions
+	# Build associative array of existing tmux sessions (with caching)
 	declare -A tmux_sessions
 	declare -A tmux_timestamps
 	declare -A tmux_attached
-	
+
+	local tmux_cache_file="$CACHE_DIR/tmux_ls"
+	local tmux_output
+
+	if is_cache_valid "$tmux_cache_file" 3; then
+		tmux_output=$(cat "$tmux_cache_file" 2>/dev/null)
+	else
+		tmux_output=$(tmux ls 2>/dev/null)
+		echo "$tmux_output" > "$tmux_cache_file" 2>/dev/null || true
+	fi
+
 	while IFS= read -r line; do
 		[ -z "$line" ] && continue
 		session_name=$(echo "$line" | cut -d':' -f1)
 		date_str=$(echo "$line" | grep -oP 'created \K[^)]+')
 		created_ts=$(date -d "$date_str" +%s 2>/dev/null)
-		
+
 		tmux_sessions["$session_name"]=1
 		tmux_timestamps["$session_name"]=$created_ts
-		
+
 		if echo "$line" | grep -q "(attached)"; then
 			tmux_attached["$session_name"]=1
 		fi
-	done <<< "$(tmux ls 2>/dev/null)"
+	done <<< "$tmux_output"
 	
 	# Process saved sessions first (in order from TOML)
 	declare -A saved_session_names
@@ -188,7 +237,7 @@ get_formatted_sessions() {
 			regular_timestamps[$ri]=$created_ts
 			((ri++))
 		fi
-	done <<< "$(tmux ls 2>/dev/null)"
+	done <<< "$tmux_output"
 	
 	# Find the attached session and output it first
 	local attached_session_name=""
