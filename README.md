@@ -2,7 +2,7 @@
 
 A fast, intuitive tmux session manager for the terminal.
 
-Inspired by [https://github.com/joshmedeski/sesh](sesh) - Another excellent tmux session manager
+Inspired by [sesh](https://github.com/joshmedeski/sesh) - Another excellent tmux session manager
 
 ## Why hop?
 
