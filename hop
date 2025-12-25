@@ -220,6 +220,7 @@ create_session() {
 	local new_name=$(gum input --placeholder "Session name" --value "$suggested_name")
 	if [ -n "$new_name" ]; then
 		tmux new-session -d -s "$new_name"
+		switch_to_session "$new_name"
 	fi
 }
 
