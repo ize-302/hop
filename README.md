@@ -1,6 +1,8 @@
-# hop
+# 🐰hop
 
 A fast, intuitive tmux session manager for the terminal.
+
+Inspired by [https://github.com/joshmedeski/sesh](sesh) - Another excellent tmux session manager
 
 ## Why hop?
 
@@ -10,7 +12,7 @@ Managing tmux sessions can be tedious. You forget session names, lose track of w
 
 - A visual, fuzzy-searchable list of all your tmux sessions
 - Saved session templates that auto-create with the right directory and startup command
-- Quick keyboard shortcuts for common actions (rename, kill, detach)
+- Quick keyboard shortcuts for common actions (create, rename, kill, detach)
 - Smart prioritization with clear visual distinction between attached and detached sessions
 
 Instead of remembering session names and typing commands, just run `hop` and press Enter.
