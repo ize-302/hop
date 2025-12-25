@@ -16,9 +16,8 @@ jobs:
           tar -xzf fzf.tar.gz
           sudo mv fzf /usr/local/bin/
           # Install gum
-          wget -O gum.tar.gz https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_amd64.deb
-          tar -xzf gum.tar.gz
-          sudo mv gum /usr/local/bin/
+          wget -O gum.deb https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_amd64.deb
+          sudo dpkg -i gum.deb
 
       - name: Syntax check
         run: bash -n hop
