@@ -12,7 +12,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y tmux python3
           # Install fzf
-          wget -O fzf.tar.gz https://github.com/junegunn/fzf/releases/download/v0.52.1/fzf-0.52.1-linux_amd64.tar.gz
+          wget -O fzf.tar.gz https://github.com/junegunn/fzf/releases/download/v0.67.0/fzf-0.67.0-darwin_amd64.tar.gz
           tar -xzf fzf.tar.gz
           sudo mv fzf /usr/local/bin/
           # Install gum
