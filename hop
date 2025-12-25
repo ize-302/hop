@@ -5,6 +5,7 @@ SCRIPT_PATH="$(realpath "$0")"
 # Config
 CONFIG_DIR="$HOME/.config/hop"
 BOOKMARKS_FILE="$CONFIG_DIR/sessions.toml"
+DEBUG=0
 
 # Colors
 GREEN='\033[1;32m'  # Bold green for attached
@@ -15,6 +16,32 @@ RESET='\033[0m'
 
 # Ensure config directory exists
 mkdir -p "$CONFIG_DIR"
+
+# Timestamp utilities
+get_current_timestamp() {
+	date -u +%Y-%m-%dT%H:%M:%SZ
+}
+
+parse_timestamp_to_epoch() {
+	date -d "$1" +%s 2>/dev/null || echo "0"
+}
+
+# Get data directory (works for both development and installed versions)
+get_data_dir() {
+	local script_dir="$(dirname "$(realpath "$0")")"
+	# First try relative to script (development)
+	if [ -d "${script_dir}/data" ]; then
+		echo "${script_dir}/data"
+	# Then try installed location (relative to bin directory)
+	elif [ -d "${script_dir}/../share/hop" ]; then
+		echo "${script_dir}/../share/hop"
+	# Then try absolute installed location
+	elif [ -d "/usr/local/share/hop" ]; then
+		echo "/usr/local/share/hop"
+	else
+		echo "data"  # Fallback for compatibility
+	fi
+}
 
 # Parse saved sessions from TOML file
 # Outputs: name<TAB>path<TAB>startup_command (one per line)
@@ -182,8 +209,9 @@ detach_session() {
 }
 
 generate_random_name() {
-	local adjective=$(shuf -n1 data/adjectives.txt)
-	local noun=$(shuf -n1 data/nouns.txt)
+	local data_dir=$(get_data_dir)
+	local adjective=$(shuf -n1 "${data_dir}/adjectives.txt")
+	local noun=$(shuf -n1 "${data_dir}/nouns.txt")
 	echo "${adjective}-${noun}"
 }
 
