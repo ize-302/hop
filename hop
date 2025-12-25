@@ -107,11 +107,15 @@ format_time_ago() {
 }
 
 get_formatted_sessions() {
-	local saved_sessions=()
-	local regular_sessions=()
-	local regular_timestamps=()
-	local ri=0
-	
+	local all_sessions=()
+	local attached_session=""
+	local current_session=""
+
+	# Get current session name (session attached to current client)
+	if [ -n "$TMUX" ]; then
+		current_session=$(tmux display-message -p '#S' 2>/dev/null)
+	fi
+
 	# Build associative array of existing tmux sessions
 	declare -A tmux_sessions
 	declare -A tmux_timestamps
@@ -140,16 +144,17 @@ get_formatted_sessions() {
 		if [ -n "${tmux_sessions[$name]}" ]; then
 			# Session exists
 			local formatted_date=$(format_time_ago "${tmux_timestamps[$name]}")
-			local is_attached=""
+			local color=$GRAY
 			if [ -n "${tmux_attached[$name]}" ]; then
-				is_attached=" *"
+				color=$GREEN
 			fi
-			
-			if [ -n "$is_attached" ]; then
-				saved_sessions+=("${YELLOW}★ ${RESET}${GREEN}${name} · ${formatted_date}${is_attached}${RESET}")
-			else
-				saved_sessions+=("${YELLOW}★ ${RESET}${GRAY}${name} · ${formatted_date}${RESET}")
+
+			local star=""
+			if [ "$name" = "$current_session" ]; then
+				star=" *"
 			fi
+
+			saved_sessions+=("${YELLOW}★ ${RESET}${color}${name} · ${formatted_date}${star}${RESET}")
 		else
 			# Session doesn't exist - show as (new)
 			saved_sessions+=("${YELLOW}★ ${RESET}${GRAY}${name} ${DIM}· (saved)${RESET}")
@@ -169,17 +174,17 @@ get_formatted_sessions() {
 		
 		if [ -n "$created_ts" ]; then
 			formatted_date=$(format_time_ago "$created_ts")
-			local is_attached=""
-			
-			if echo "$line" | grep -q "(attached)"; then
-				is_attached=" *"
+			local color=$GRAY
+			if [ -n "${tmux_attached[$session_name]}" ]; then
+				color=$GREEN
 			fi
-			
-			if [ -n "$is_attached" ]; then
-				regular_sessions[$ri]="${GREEN}${session_name} · ${formatted_date}${is_attached}${RESET}"
-			else
-				regular_sessions[$ri]="${GRAY}${session_name} · ${formatted_date}${RESET}"
+
+			local star=""
+			if [ "$session_name" = "$current_session" ]; then
+				star=" *"
 			fi
+
+			regular_sessions[$ri]="${color}${session_name} · ${formatted_date}${star}${RESET}"
 			regular_timestamps[$ri]=$created_ts
 			((ri++))
 		fi
@@ -189,13 +194,18 @@ get_formatted_sessions() {
 	local attached_session_name=""
 	local attached_display=""
 
-	# First, find which session is attached by checking the tmux_attached array
-	for session_name in "${!tmux_attached[@]}"; do
-		if [ -n "${tmux_attached[$session_name]}" ]; then
-			attached_session_name="$session_name"
-			break
-		fi
-	done
+	# Priority: current client's session
+	attached_session_name="$current_session"
+
+	# Fallback: if no current session, use first attached session
+	if [ -z "$attached_session_name" ]; then
+		for session_name in "${!tmux_attached[@]}"; do
+			if [ -n "${tmux_attached[$session_name]}" ]; then
+				attached_session_name="$session_name"
+				break
+			fi
+		done
+	fi
 
 	# Now find the display string for this attached session
 	if [ -n "$attached_session_name" ]; then

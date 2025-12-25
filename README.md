@@ -11,7 +11,7 @@ Managing tmux sessions can be tedious. You forget session names, lose track of w
 - A visual, fuzzy-searchable list of all your tmux sessions
 - Saved session templates that auto-create with the right directory and startup command
 - Quick keyboard shortcuts for common actions (rename, kill, detach)
-- Clear visual distinction between active and inactive sessions
+- Smart prioritization with clear visual distinction between attached and detached sessions
 
 Instead of remembering session names and typing commands, just run `hop` and press Enter.
 
@@ -19,6 +19,7 @@ Instead of remembering session names and typing commands, just run `hop` and pre
 
 - **Fuzzy search** - Quickly find sessions by typing
 - **Saved sessions** - Define session templates in TOML with name, path, and startup command
+- **Smart prioritization** - Current client's session appears first, attached sessions highlighted
 - **Keyboard-driven** - All actions accessible via shortcuts
 
 ## Requirements
@@ -158,18 +159,19 @@ hop
 ### Display
 
 ```
-★ File manager · (new)       # Saved session, not yet created
-★ Personal · 2h ago *        # Saved session, active (attached)
-★ Notes · 1h ago             # Saved session, running
-main · 30m ago                   # Regular tmux session
-work · 45m ago                   # Regular tmux session
+★ Personal · 2h ago *        # Current client session (top priority)
+main · 5m ago                # Other client attached session (green)
+★ Notes · 1h ago             # Saved session, detached (gray)
+work · 45m ago               # Regular session, detached (gray)
+★ File manager · (saved)     # Saved session, not yet created
 ```
 
 - `★` - Saved session (defined in sessions.toml)
-- `*` - Currently attached
+- `*` - Attached to current tmux client
 - `(saved)` - Session doesn't exist yet, will be created on selection
-- Green text - Attached session
-- Gray text - Detached session
+- **Green text** - Session attached to any tmux client
+- **Gray text** - Detached session
+- **Top priority** - Current client's session appears first
 
 ## License
 
