@@ -185,15 +185,15 @@ get_formatted_sessions() {
 		fi
 	done <<< "$(tmux ls 2>/dev/null)"
 	
-	# Output saved sessions first (in TOML order)
-	for session in "${saved_sessions[@]}"; do
-		echo -e "$session"
-	done
-	
-	# Then output regular sessions (sorted by newest)
+	# Output regular sessions first (sorted by newest)
 	for ((j=0; j<${#regular_sessions[@]}; j++)); do
 		echo -e "${regular_timestamps[$j]} ${regular_sessions[$j]}"
 	done | sort -rn | cut -d' ' -f2-
+
+	# Then output saved sessions (in TOML order)
+	for session in "${saved_sessions[@]}"; do
+		echo -e "$session"
+	done
 }
 
 get_session_name() {
