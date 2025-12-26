@@ -189,6 +189,10 @@ This project uses GitHub Actions for:
 - **Continuous Integration**: Automated testing on every push and pull request
 - **Automated Releases**: Versioned releases with changelog generation when tags are pushed
 
+### Cache Location
+
+hop stores cached data in the XDG cache directory (`~/.cache/hop/`) for optimal performance and standards compliance.
+
 ### Releasing
 
 To create a new release:

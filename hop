@@ -6,15 +6,15 @@ SCRIPT_PATH="$(realpath "$0")"
 CONFIG_DIR="$HOME/.config/hop"
 BOOKMARKS_FILE="$CONFIG_DIR/sessions.toml"
 ACCESS_FILE="$CONFIG_DIR/last_accessed.toml"
-CACHE_DIR="$CONFIG_DIR/cache"
-CACHE_TTL=5  # Cache TTL in seconds
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/hop"
+CACHE_TTL=5 # Cache TTL in seconds
 DEBUG=0
 
 # Colors
-GREEN='\033[1;32m'  # Bold green for attached
-GRAY='\033[37m'     # Light gray for non-attached
-YELLOW='\033[33m'   # Yellow for bookmark star
-DIM='\033[90m'      # Dim for (new) indicator
+GREEN='\033[1;32m' # Bold green for attached
+GRAY='\033[37m'    # Light gray for non-attached
+YELLOW='\033[33m'  # Yellow for bookmark star
+DIM='\033[90m'     # Dim for (new) indicator
 RESET='\033[0m'
 
 # Ensure config directory exists
@@ -42,13 +42,27 @@ get_data_dir() {
 	elif [ -d "/usr/local/share/hop" ]; then
 		echo "/usr/local/share/hop"
 	else
-		echo "data"  # Fallback for compatibility
+		echo "data" # Fallback for compatibility
 	fi
 }
 
 # Cache functions for performance optimization
 ensure_cache_dir() {
 	mkdir -p "$CACHE_DIR" 2>/dev/null
+}
+
+migrate_cache_location() {
+	local old_cache_dir="$CONFIG_DIR/cache"
+	local new_cache_dir="$CACHE_DIR"
+
+	# Migrate if old cache exists (regardless of new cache status)
+	if [ -d "$old_cache_dir" ]; then
+		mkdir -p "$new_cache_dir"
+		if mv "$old_cache_dir"/* "$new_cache_dir/" 2>/dev/null; then
+			rmdir "$old_cache_dir" 2>/dev/null
+			log_debug "Migrated cache from $old_cache_dir to $new_cache_dir"
+		fi
+	fi
 }
 
 is_cache_valid() {
@@ -65,12 +79,13 @@ get_cached_content() {
 		cat "$cache_file" 2>/dev/null
 	else
 		# Content will be provided via stdin
-		cat > "$cache_file"
+		cat >"$cache_file"
 		cat "$cache_file"
 	fi
 }
 
 ensure_cache_dir
+migrate_cache_location
 
 # Parse saved sessions from TOML file (with caching and lazy loading)
 # Outputs: name<TAB>path<TAB>startup_command (one per line)
@@ -86,7 +101,8 @@ parse_saved_sessions() {
 		cat "$cache_file" 2>/dev/null
 	else
 		local content
-		content=$(python3 << 'EOF'
+		content=$(
+			python3 <<'EOF'
 import tomllib
 import os
 
@@ -100,8 +116,8 @@ if os.path.exists(config_path):
         cmd = session.get("startup_command", "")
         print(f"{name}\t{path}\t{cmd}")
 EOF
-)
-		echo "$content" > "$cache_file" 2>/dev/null || true
+		)
+		echo "$content" >"$cache_file" 2>/dev/null || true
 		echo "$content"
 	fi
 }
@@ -172,7 +188,7 @@ get_formatted_sessions() {
 		tmux_output=$(cat "$tmux_cache_file" 2>/dev/null)
 	else
 		tmux_output=$(tmux ls 2>/dev/null)
-		echo "$tmux_output" > "$tmux_cache_file" 2>/dev/null || true
+		echo "$tmux_output" >"$tmux_cache_file" 2>/dev/null || true
 	fi
 
 	while IFS= read -r line; do
@@ -187,14 +203,14 @@ get_formatted_sessions() {
 		if echo "$line" | grep -q "(attached)"; then
 			tmux_attached["$session_name"]=1
 		fi
-	done <<< "$tmux_output"
-	
+	done <<<"$tmux_output"
+
 	# Process saved sessions first (in order from TOML)
 	declare -A saved_session_names
 	while IFS=$'\t' read -r name path cmd; do
 		[ -z "$name" ] && continue
 		saved_session_names["$name"]=1
-		
+
 		if [ -n "${tmux_sessions[$name]}" ]; then
 			# Session exists
 			local formatted_date=$(format_time_ago "${tmux_timestamps[$name]}")
@@ -213,8 +229,8 @@ get_formatted_sessions() {
 			# Session doesn't exist - show as (new)
 			saved_sessions+=("${YELLOW}★ ${RESET}${GRAY}${name} ${DIM}· (saved)${RESET}")
 		fi
-	done <<< "$(parse_saved_sessions)"
-	
+	done <<<"$(parse_saved_sessions)"
+
 	# Process regular tmux sessions (not in saved list)
 	while IFS= read -r line; do
 		[ -z "$line" ] && continue
@@ -225,7 +241,7 @@ get_formatted_sessions() {
 
 		date_str=$(echo "$line" | grep -oP 'created \K[^)]+')
 		created_ts=$(date -d "$date_str" +%s 2>/dev/null)
-		
+
 		if [ -n "$created_ts" ]; then
 			formatted_date=$(format_time_ago "$created_ts")
 			local color=$GRAY
@@ -242,8 +258,8 @@ get_formatted_sessions() {
 			regular_timestamps[$ri]=$created_ts
 			((ri++))
 		fi
-	done <<< "$tmux_output"
-	
+	done <<<"$tmux_output"
+
 	# Find the attached session and output it first
 	local attached_session_name=""
 	local attached_display=""
@@ -264,7 +280,7 @@ get_formatted_sessions() {
 	# Now find the display string for this attached session
 	if [ -n "$attached_session_name" ]; then
 		# Check regular sessions (simple string match)
-		for ((j=0; j<${#regular_sessions[@]}; j++)); do
+		for ((j = 0; j < ${#regular_sessions[@]}; j++)); do
 			if [[ "${regular_sessions[$j]}" == *"$attached_session_name"* ]]; then
 				attached_display="${regular_sessions[$j]}"
 				break
@@ -288,7 +304,7 @@ get_formatted_sessions() {
 	fi
 
 	# Output regular sessions (sorted by newest, excluding attached)
-	for ((j=0; j<${#regular_sessions[@]}; j++)); do
+	for ((j = 0; j < ${#regular_sessions[@]}; j++)); do
 		if [[ "${regular_sessions[$j]}" != *"$attached_session_name"* ]]; then
 			echo -e "${regular_timestamps[$j]} ${regular_sessions[$j]}"
 		fi
@@ -349,20 +365,20 @@ kill_session() {
 
 switch_to_session() {
 	local session_name="$1"
-	
+
 	# If session doesn't exist, check if it's a saved session and create it
 	if ! session_exists "$session_name"; then
 		if is_saved_session "$session_name"; then
 			local config=$(get_saved_session_config "$session_name")
 			local path=$(echo "$config" | cut -f1)
 			local startup_cmd=$(echo "$config" | cut -f2)
-			
+
 			# Expand ~ in path
 			path="${path/#\~/$HOME}"
-			
+
 			# Create the session with the specified path
 			tmux new-session -d -s "$session_name" -c "$path"
-			
+
 			# Run startup command if specified
 			if [ -n "$startup_cmd" ]; then
 				tmux send-keys -t "$session_name" "$startup_cmd" Enter
@@ -372,7 +388,7 @@ switch_to_session() {
 			return 1
 		fi
 	fi
-	
+
 	# Switch or attach to the session
 	if [ -n "$TMUX" ]; then
 		tmux switch-client -t "$session_name"
@@ -383,21 +399,22 @@ switch_to_session() {
 
 main() {
 	formatted_sessions=$(get_formatted_sessions)
-	
-	selection=$(echo "$formatted_sessions" | fzf \
-		--ansi \
-		--header "[enter: switch, C-n: new, C-r: rename, C-d: detach, C-x: kill]" \
-		--bind "ctrl-d:execute($SCRIPT_PATH --detach {})+reload($SCRIPT_PATH --list)" \
-		--bind "ctrl-n:execute($SCRIPT_PATH --new)+reload($SCRIPT_PATH --list)" \
-		--bind "ctrl-r:execute($SCRIPT_PATH --rename {})+reload($SCRIPT_PATH --list)" \
-		--bind "ctrl-x:execute($SCRIPT_PATH --kill {})+reload($SCRIPT_PATH --list)" \
-		--bind "enter:accept" \
-		--bind "tab:down" \
-		--bind "shift-tab:up" \
-		--cycle \
-		--reverse \
+
+	selection=$(
+		echo "$formatted_sessions" | fzf \
+			--ansi \
+			--header "[enter: switch, C-n: new, C-r: rename, C-d: detach, C-x: kill]" \
+			--bind "ctrl-d:execute($SCRIPT_PATH --detach {})+reload($SCRIPT_PATH --list)" \
+			--bind "ctrl-n:execute($SCRIPT_PATH --new)+reload($SCRIPT_PATH --list)" \
+			--bind "ctrl-r:execute($SCRIPT_PATH --rename {})+reload($SCRIPT_PATH --list)" \
+			--bind "ctrl-x:execute($SCRIPT_PATH --kill {})+reload($SCRIPT_PATH --list)" \
+			--bind "enter:accept" \
+			--bind "tab:down" \
+			--bind "shift-tab:up" \
+			--cycle \
+			--reverse
 	)
-	
+
 	if [ -n "$selection" ]; then
 		session_name=$(get_session_name "$selection")
 		switch_to_session "$session_name"
@@ -406,25 +423,25 @@ main() {
 
 # Handle command line arguments for fzf callbacks
 case "$1" in
-	--detach)
-		shift
-		detach_session "$*"
-		;;
-	--new)
-		create_session
-		;;
-	--rename)
-		shift
-		rename_session "$*"
-		;;
-	--kill)
-		shift
-		kill_session "$*"
-		;;
-	--list)
-		get_formatted_sessions
-		;;
-	*)
-		main
-		;;
+--detach)
+	shift
+	detach_session "$*"
+	;;
+--new)
+	create_session
+	;;
+--rename)
+	shift
+	rename_session "$*"
+	;;
+--kill)
+	shift
+	kill_session "$*"
+	;;
+--list)
+	get_formatted_sessions
+	;;
+*)
+	main
+	;;
 esac
