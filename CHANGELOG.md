@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Releases are made with `./release.sh` instead of a tag-triggered GitHub
+  Actions workflow. The release notes come from this changelog, written by
+  hand, instead of git-cliff.
+- Releases no longer attach a `hop-X.Y.Z.tar.gz` archive. Install with
+  `git clone` as the README shows.
+
 ## [0.1.4] - 2026-10-25
 
 ### Fixes 
