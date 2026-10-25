@@ -185,9 +185,7 @@ hop uses [Semantic Versioning](https://semver.org/). Version information is stor
 
 ### CI/CD
 
-This project uses GitHub Actions for:
-- **Continuous Integration**: Automated testing on every push and pull request
-- **Automated Releases**: Versioned releases with changelog generation when tags are pushed
+GitHub Actions runs CI (syntax check and functional test) on every push and pull request.
 
 ### Cache Location
 
@@ -195,12 +193,14 @@ hop stores cached data in the XDG cache directory (`~/.cache/hop/`) for optimal 
 
 ### Releasing
 
-To create a new release:
+Add entries under `## [Unreleased]` in `CHANGELOG.md` as you go. To release, run on `main`, up to date with origin, with nothing uncommitted:
 
-1. Update the `VERSION` file with the new version number
-2. Commit and push the changes
-3. Create and push a git tag: `git tag vX.Y.Z && git push origin vX.Y.Z`
-4. GitHub Actions will automatically create a release with changelog and assets
+```bash
+./release.sh patch            # or minor, major, or an exact x.y.z
+./release.sh minor --dry-run  # check and preview, change nothing
+```
+
+It bumps `VERSION`, dates the changelog, commits, tags, pushes `main` and the tag together, and creates the GitHub release with the `[Unreleased]` entries as notes. It needs `gh` logged in.
 
 ## License
 
