@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Record each session's real name next to its colored display line (saved_names, regular_names).
+- Checks that used substring matching (_"$name"_) now compare names exactly.
+
 ### Added
+
 - GitHub Actions CI/CD workflows for automated testing and releases
 - Automatic changelog generation using git-cliff
 - Version file for semantic versioning
@@ -15,16 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README with installation and usage instructions
 
 ### Performance
+
 - Caching system for tmux session data and TOML parsing (7x startup improvement)
 - Lazy loading for saved sessions
 - Optimized string processing and function calls
 
 ### Features
+
 - Smart prioritization: Current client's session appears first
 - Enhanced color coding: All attached sessions show in green
 - Improved session management with better visual indicators
 
 ### Documentation
+
 - Detailed installation instructions (install script + manual)
 - Keyboard shortcuts reference
 - Configuration examples
@@ -33,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-12-25
 
 ### Added
+
 - Initial release of hop - fast tmux session manager
 - Fuzzy search with fzf integration
 - Saved session templates in TOML format

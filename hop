@@ -229,6 +229,7 @@ get_formatted_sessions() {
 			# Session doesn't exist - show as (new)
 			saved_sessions+=("${YELLOW}★ ${RESET}${GRAY}${name} ${DIM}· (saved)${RESET}")
 		fi
+		saved_names+=("$name")
 	done <<<"$(parse_saved_sessions)"
 
 	# Process regular tmux sessions (not in saved list)
@@ -256,6 +257,7 @@ get_formatted_sessions() {
 
 			regular_sessions[$ri]="${color}${session_name} · ${formatted_date}${star}${RESET}"
 			regular_timestamps[$ri]=$created_ts
+			regular_names[$ri]="$session_name"
 			((ri++))
 		fi
 	done <<<"$tmux_output"
@@ -279,19 +281,19 @@ get_formatted_sessions() {
 
 	# Now find the display string for this attached session
 	if [ -n "$attached_session_name" ]; then
-		# Check regular sessions (simple string match)
+		# Check regular sessions (exact name match)
 		for ((j = 0; j < ${#regular_sessions[@]}; j++)); do
-			if [[ "${regular_sessions[$j]}" == *"$attached_session_name"* ]]; then
+			if [ "${regular_names[$j]}" = "$attached_session_name" ]; then
 				attached_display="${regular_sessions[$j]}"
 				break
 			fi
 		done
 
-		# If not found in regular, check saved sessions (simple string match)
+		# If not found in regular, check saved sessions (exact name match)
 		if [ -z "$attached_display" ]; then
-			for session in "${saved_sessions[@]}"; do
-				if [[ "$session" == *"$attached_session_name"* ]]; then
-					attached_display="$session"
+			for ((j = 0; j < ${#saved_sessions[@]}; j++)); do
+				if [ "${saved_names[$j]}" = "$attached_session_name" ]; then
+					attached_display="${saved_sessions[$j]}"
 					break
 				fi
 			done
@@ -305,15 +307,15 @@ get_formatted_sessions() {
 
 	# Output regular sessions (sorted by newest, excluding attached)
 	for ((j = 0; j < ${#regular_sessions[@]}; j++)); do
-		if [[ "${regular_sessions[$j]}" != *"$attached_session_name"* ]]; then
+		if [ "${regular_names[$j]}" != "$attached_session_name" ]; then
 			echo -e "${regular_timestamps[$j]} ${regular_sessions[$j]}"
 		fi
 	done | sort -rn | cut -d' ' -f2-
 
 	# Output saved sessions (in TOML order, excluding attached)
-	for session in "${saved_sessions[@]}"; do
-		if [[ "$session" != *"$attached_session_name"* ]]; then
-			echo -e "$session"
+	for ((j = 0; j < ${#saved_sessions[@]}; j++)); do
+		if [ "${saved_names[$j]}" != "$attached_session_name" ]; then
+			echo -e "${saved_sessions[$j]}"
 		fi
 	done
 }
