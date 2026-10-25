@@ -41,7 +41,14 @@ die() {
 
 [ "$(git branch --show-current)" = main ] || die "Release from main (git switch main)."
 [ -z "$(git status --porcelain)" ] || die "Commit or stash your changes first."
-git fetch -q origin main --tags
+# Not -q: it hides why a fetch failed, e.g. a local tag that differs from origin's
+if ! fetch_out=$(git fetch origin main --tags 2>&1); then
+  note "Couldn't fetch from origin:"
+  sed 's/^/      /' <<<"$fetch_out"
+  grep -q 'would clobber existing tag' <<<"$fetch_out" &&
+    note "A local tag differs from origin's: git tag -d <tag> && git fetch origin --tags"
+  exit 1
+fi
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] ||
   die "main isn't the same as origin/main: pull or push first."
 command -v gh >/dev/null || die "gh isn't installed (pacman -S github-cli)."
