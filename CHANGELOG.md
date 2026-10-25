@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-10-25
+
 ### Changed
 
 - Releases are made with `./release.sh` instead of a tag-triggered GitHub
@@ -60,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Random session name generation
 - Basic CLI interface with keyboard shortcuts
 
-[Unreleased]: https://github.com/ize-302/hop/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/ize-302/hop/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/ize-302/hop/releases/tag/v0.1.5
 [0.1.4]: https://github.com/ize-302/hop/releases/tag/v0.1.4
 [0.1.0]: https://github.com/ize-302/hop/releases/tag/v0.1.0
