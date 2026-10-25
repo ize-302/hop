@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2025-10-25
+
+### Fixes 
 - Record each session's real name next to its colored display line (saved_names, regular_names).
 - Checks that used substring matching (_"$name"_) now compare names exactly.
 
