@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.4] - 2025-10-25
+## [0.1.4] - 2026-10-25
 
 ### Fixes 
 - Record each session's real name next to its colored display line (saved_names, regular_names).
@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configuration examples
 - Development and release guidelines
 
-## [0.1.0] - 2024-12-25
+## [0.1.0] - 2025-12-25
 
 ### Added
 
@@ -51,3 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Color-coded session status indicators
 - Random session name generation
 - Basic CLI interface with keyboard shortcuts
+
+[Unreleased]: https://github.com/ize-302/hop/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/ize-302/hop/releases/tag/v0.1.4
+[0.1.0]: https://github.com/ize-302/hop/releases/tag/v0.1.0
